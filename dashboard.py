@@ -2,13 +2,8 @@ import streamlit as st
 import requests
 import openai
 
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-POLYGON_API_KEY = "your_polygon_key_here"
-OPENAI_API_KEY = "your_openai_key_here"
-
+POLYGON_API_KEY = st.secrets["POLYGON_API_KEY"]
+OPENAI_API_KEY = st.secrets["OPENAI_API_KEY"]
 
 st.title("Stock sentiment Dashboard")
 st.subheader("AI-Powered Market Sentiment Analysis")
