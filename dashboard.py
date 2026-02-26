@@ -46,7 +46,13 @@ if st.button("Analyze Sentiment"):
         st.write(sentiment)
         st.write("---")
         average = total_score // count
-    st.subheader(f"Overall Sentiment Score for {ticker}: {average}/100")
+    if average >= 70:        
+        color = "green"
+    elif average <=40:  
+        color = "red" 
+    else:    
+        color = "orange"
+    st.markdown(f"<h2 style='color:{color}'>Overall Sentiment Score for {ticker}: {average}/100</h2>", unsafe_allow_html=True)   
 
    
    
