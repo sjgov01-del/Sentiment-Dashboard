@@ -1,4 +1,5 @@
-import tkinter as tk
+import os
+import tkinter as tk 
 from tkinter import scrolledtext
 import threading
 import winsound
@@ -8,9 +9,26 @@ import urllib.request
 import xml.etree.ElementTree as ET
 import openai
 from connectors import MassiveConnector, DTNConnector
+CONFIG_FILE = "C:\\Users\\Trader\\Desktop\\terminal_config.json"
+
+def save_config():
+    config = {
+        "massive_key": api_key_entry.get().strip(),
+        "openai_key": openai_key_entry.get().strip()
+    }
+    with open(CONFIG_FILE, 'w') as f:
+        json.dump(config, f)
+
+def load_config():
+    try:
+        with open(CONFIG_FILE, 'r') as f:
+            config = json.load(f)
+            return config.get("massive_key", ""), config.get("openai_key", "")
+    except:
+        return "", ""
 
 # API KEYS
-POLYGON_API_KEY = ""
+POLYGON_API_KEY = "ceF7rXmSTIpGsQDR6m8uVmeFBAomMQ3n"
 OPENAI_API_KEY = ""
 
 # ORDER FLOW STATE
@@ -132,6 +150,7 @@ def save_session():
     add_trade(f"💾 Session saved!", "mid")
 
 def start_monitoring():
+    save_config()
     global buy_count, sell_count, total_volume, active_connector, ticker_stats
     TICKER = ticker_entry.get().upper()
     buy_count = 0
@@ -180,7 +199,7 @@ def get_news_sentiment(ticker):
             if not articles:
                 sent_feed.insert(tk.END, "No news found\n", "info")
                 return
-            client = openai.OpenAI(api_key=OPENAI_API_KEY)
+            client = openai.OpenAI(api_key=openai_key_entry.get())
             total = 0
             count = 0
             for article in articles:
@@ -404,6 +423,15 @@ right_panel.pack_propagate(False)
 
 tk.Label(right_panel, text="SENTIMENT ANALYSIS",
     font=("Arial", 13, "bold"), bg="#0a0f2c", fg="#00aaff").pack(pady=5)
+# OPENAI KEY INPUT
+oai_frame = tk.Frame(right_panel, bg="#0a0f2c")
+oai_frame.pack(pady=2)
+tk.Label(oai_frame, text="OpenAI Key:", bg="#0a0f2c", fg="white",
+    font=("Arial", 10)).pack(side=tk.LEFT)
+openai_key_entry = tk.Entry(oai_frame, font=("Arial", 10), width=38,
+    bg="#1a2a5a", fg="white", insertbackground="white", show="*")
+openai_key_entry.insert(0, OPENAI_API_KEY)
+openai_key_entry.pack(side=tk.LEFT, padx=5)
 
 # SENTIMENT TICKER INPUT
 sent_control = tk.Frame(right_panel, bg="#0a0f2c")
@@ -452,5 +480,9 @@ tk.Button(button_frame, text="🗑  CLEAR",
     font=("Arial", 12, "bold"), bg="#555555", fg="white",
     command=lambda: [trade_feed.delete(1.0, tk.END), large_feed.delete(1.0, tk.END)],
     padx=15, pady=4).pack(side=tk.LEFT, padx=8)
-
+# LOAD SAVED KEYS
+massive_key, openai_key = load_config()
+if not api_key_entry.get():
+    api_key_entry.insert(0, massive_key)
+openai_key_entry.insert(0, openai_key)
 root.mainloop()
