@@ -10,3 +10,4 @@ A professional order flow monitor with AI sentiment analysis.
 ## API Keys
 - Massive API key from massive.com
 - OpenAI API key from platform.openai.com
+ 
