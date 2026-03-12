@@ -9,7 +9,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 import openai
 from connectors import MassiveConnector, DTNConnector
-CONFIG_FILE = "C:\\Users\\Trader\\Desktop\\terminal_config.json"
+CONFIG_FILE = os.path.join(os.path.expanduser("~"), "terminal_config.json")
 
 def save_config():
     config = {
