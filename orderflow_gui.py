@@ -34,11 +34,13 @@ OPENAI_API_KEY = ""
 # ORDER FLOW STATE
 current_bid = 0
 current_ask = 0
+bid_ask_by_ticker = {}
 buy_count = 0
 sell_count = 0
 total_volume = 0
 active_connector = [None]
 ticker_stats = {}
+
 
 def play_beep(frequency=440, duration=150):
     try:
@@ -46,17 +48,21 @@ def play_beep(frequency=440, duration=150):
     except Exception:
         pass
 
-def on_quote(bid, ask):
+def on_quote(bid, ask, ticker=""):
     global current_bid, current_ask
     current_bid = bid
     current_ask = ask
+    if ticker:
+        bid_ask_by_ticker[ticker] = {'bid': bid, 'ask': ask}
     root.after(0, update_bid_ask)
 
 def on_trade(price, size, ticker=""):
     global buy_count, sell_count, total_volume, ticker_stats
     if size < 100:
         return
-    if current_ask > 0 and price >= current_ask:
+    bid = bid_ask_by_ticker.get(ticker, {}).get('bid', current_bid)
+    ask = bid_ask_by_ticker.get(ticker, {}).get('ask', current_ask)
+    if ask > 0 and price >= ask:
         side = "ASK"
         tag = "ask"
         buy_count += 1
@@ -65,7 +71,7 @@ def on_trade(price, size, ticker=""):
             ticker_stats.setdefault(ticker, {'buys': 0, 'sells': 0})
             ticker_stats[ticker]['buys'] += 1
         threading.Thread(target=play_beep, args=(880, 150), daemon=True).start()
-    elif current_bid > 0 and price <= current_bid:
+    elif bid > 0 and price <= bid:
         side = "BID"
         tag = "bid"
         sell_count += 1
