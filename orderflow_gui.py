@@ -1,3 +1,4 @@
+import yfinance as yf
 import os
 import tkinter as tk 
 from tkinter import scrolledtext
@@ -240,7 +241,53 @@ def get_news_sentiment(ticker):
             get_reddit_sentiment(ticker, client, total, count)
         except Exception as e:
             root.after(0, sent_feed.insert, tk.END, f"Error: {str(e)[:50]}\n", "negative")
-    threading.Thread(target=run, daemon=True).start()
+    threading.Thread(target=run, daemon=True).start() 
+def get_options_sentiment(ticker, combined_total, combined_count):
+    try:
+        t = yf.Ticker(ticker)    
+        if not t.options:
+            root.after(0, sent_feed.insert, tk.END, "No options data found\n", "info")
+            return
+        chain = t.option_chain(t.options[0])
+        calls = chain.calls
+        puts = chain.puts
+        total_call_volume = calls['volume'].sum()
+        total_put_volume = puts['volume'].sum()
+        if total_call_volume == 0:
+            return
+        ratio = round(total_put_volume / total_call_volume, 2)
+        if ratio < 0.7:
+            tag = "positive"
+            sentiment = "BULLISH 🟢"
+            score = int(100 - (ratio * 50))
+        elif ratio > 1.0:
+            tag = "negative"
+            sentiment = "BEARISH 🔴"
+            score = int(50 - ((ratio - 1.0) * 25))
+        else:
+            tag = "neutral"
+            sentiment = "NEUTRAL 🟡"
+            score = 50
+        score = max(0, min(100, score))
+        root.after(0, sent_feed.insert, tk.END, f"\nOPTIONS FLOW\n", "info")
+        root.after(0, sent_feed.insert, tk.END, f"Put/Call Ratio: {ratio}\n", tag)
+        root.after(0, sent_feed.insert, tk.END, f"Call Volume: {int(total_call_volume):,}\n", "positive")
+        root.after(0, sent_feed.insert, tk.END, f"Put Volume: {int(total_put_volume):,}\n", "negative")
+        root.after(0, sent_feed.insert, tk.END, f"OPTIONS SCORE: {score}/100 {sentiment}\n", tag)
+        final_total = combined_total + score
+        final_count = combined_count + 1
+        final_score = final_total // final_count
+        if final_score >= 70:
+            tag = "positive"
+        elif final_score <= 40:
+            tag = "negative"
+        else:
+            tag = "neutral"
+        root.after(0, sent_feed.insert, tk.END, f"\n⭐ OVERALL: {final_score}/100\n", tag)
+        root.after(0, overall_score_label.config, {"text": f"SCORE: {final_score}/100",
+            "fg": "lime" if final_score >= 70 else "red" if final_score <= 40 else "yellow"})
+    except Exception as e:
+        root.after(0, sent_feed.insert, tk.END, f"Options error: {str(e)[:50]}\n", "negative")        
 
 def get_reddit_sentiment(ticker, client, news_total, news_count):
     try:
@@ -259,6 +306,7 @@ def get_reddit_sentiment(ticker, client, news_total, news_count):
             if title is not None:
                 titles.append(title.text)
         if not titles:
+            get_options_sentiment(ticker, news_total, news_count)
             return
         reddit_total = 0
         reddit_count = 0
@@ -283,18 +331,10 @@ def get_reddit_sentiment(ticker, client, news_total, news_count):
             else:
                 tag = "neutral"
             root.after(0, sent_feed.insert, tk.END, f"REDDIT SCORE: {reddit_avg}/100\n", tag)
-            combined = (news_total + reddit_total) // (news_count + reddit_count)
-            if combined >= 70:
-                tag = "positive"
-            elif combined <= 40:
-                tag = "negative"
-            else:
-                tag = "neutral"
-            root.after(0, sent_feed.insert, tk.END, f"\n⭐ OVERALL: {combined}/100\n", tag)
-            root.after(0, overall_score_label.config, {"text": f"SCORE: {combined}/100",
-                "fg": "lime" if combined >= 70 else "red" if combined <= 40 else "yellow"})
+            get_options_sentiment(ticker, news_total + reddit_total, news_count + reddit_count)
     except Exception as e:
         root.after(0, sent_feed.insert, tk.END, f"Reddit error: {str(e)[:50]}\n", "negative")
+        get_options_sentiment(ticker, news_total, news_count)     
 
 def analyze_sentiment():
     ticker = sent_ticker_entry.get().upper()
