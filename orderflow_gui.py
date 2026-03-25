@@ -82,6 +82,9 @@ def on_trade(price, size, ticker=""):
             ticker_stats[ticker]['sells'] += 1
         threading.Thread(target=play_beep, args=(220, 150), daemon=True).start()
     else:
+        # Count MID volume but don't show in feed
+        total_volume += size
+        root.after(0, update_counters)
         return
     text = f"{ticker+' ' if ticker else ''}{side}  ${price:.2f}  x  {size:,} shares"
     if size >= 1000:
